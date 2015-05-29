@@ -7,10 +7,10 @@ argv = sys.argv
 image_name = argv[2].split('.')[0]
 print image_name
 
-call(["split", "-b","4096", argv[1], "output_" + image_name])
+call(["split", "-b","131072", argv[1], "output_" + image_name])
 
 
-count = 0 
+count = 0
 for filename in os.listdir("."):
 	if filename.startswith("output_" + image_name):
 		count += 1
