@@ -9,16 +9,21 @@ print image_name
 
 call(["split", "-b","131072", argv[1], "output_" + image_name])
 
+files = []
 
-count = 0
+
 for filename in os.listdir("."):
 	if filename.startswith("output_" + image_name):
-		count += 1
-		print filename
+		files.append(filename)
 
-		call(["java", "-jar","f5.jar", "e", "-e", filename, argv[2], image_name + str(count) +  ".jpg"])
+files.sort()
+count = 0
+for filename in files:
+	count += 1
 
-		os.remove(filename)
+	call(["java", "-jar","f5.jar", "e", "-e", filename, argv[2], image_name + "_"+ str(count) +  ".jpg"])
+
+	os.remove(filename)
 
 
 
