@@ -9,7 +9,7 @@ int main(int argc, char**argv){
   int i = 0;
 
 
-  for (i = 0; i < 4096; i++) {
+  for (i = 0; i < atoi(argv[2]); i++) {
   	fprintf(fp, "a");
   }
 
