@@ -4,19 +4,33 @@ import os
 import sys
 import errno
 import json
+import itertools
 
 from fuse import FUSE, FuseOSError, Operations
+import flickrapi
 
+from subprocess import call, Popen, PIPE
 
-#Flickr Key
-#f995167d658b6572aecd4d937b29a656
+# Helper to split an iterable (like a buffer) into smaller iterables
+# Another version exists using iterators, for greater efficiency, if we need it.
+# Code from http://stackoverflow.com/questions/8991506/iterate-an-iterator-by-chunks-of-n-in-python
+def grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+       chunk = list(itertools.islice(it, n))
+       if not chunk:
+           return
+       yield chunk
 
-#Flickr Secret
-#5771bf75ffb63f73
 
 class Passthrough(Operations):
     def __init__(self, root):
         self.root = root
+        flickr_key = 'f995167d658b6572aecd4d937b29a656'
+        flickr_secret = '5771bf75ffb63f73'
+
+        # Hardcode some temp shit
+        self.image_filename = "lena.jpg"
 
     def _full_path(self, partial):
         if partial.startswith("/"):
@@ -116,9 +130,24 @@ class Passthrough(Operations):
 
     def write(self, path, buf, offset, fh):
         print "*** write: " + path
-        print fh
         os.lseek(fh, offset, os.SEEK_SET)
-        return os.write(fh, buf)
+
+        # Split the buffer into chunks
+        count = 0
+        for chunk in grouper(4096, buf):
+            chunk = "".join(chunk)  # Convert to string
+            count += 1
+
+            # Write the chunk into an image file
+            image_name = self.image_filename.split('.')[0]
+            image_output_name = image_name + "_" + str(count) +  ".jpg"
+            
+            p = Popen(["java", "-jar","f6.jar", "e", self.image_filename, image_output_name], stdin=PIPE)
+            print p.communicate(input=chunk)[0]
+
+            #call(["java", "-jar","f6.jar", "e", image_filename, image_name + "_" + str(count) +  ".jpg"])
+
+        #return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
         full_path = self._full_path(path)

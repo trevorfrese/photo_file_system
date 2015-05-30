@@ -19,12 +19,12 @@ file_num = len(files)
 
 outfiles = []
 count = 1
-string_for_cat = "cat"
+string_for_cat = "cat "
 for i in range(file_num):
 	filename = file_string + "_" + str(i + 1) + ".jpg"
 	call(["java", "-jar","f5.jar", "x", "-e", "output_file" + str(count), filename])
 	outfiles.append("output_file" + str(count))
-	string_for_cat = string_for_cat + " /Users/Kevin/Desktop/file_system/tmp/output_file" + str(count)
+	string_for_cat = string_for_cat + "output_file" + str(count)
 	count+=1
 
 
