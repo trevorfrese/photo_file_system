@@ -1,4 +1,4 @@
-from subprocess import call
+from subprocess import call, Popen, PIPE, 
 import sys
 import os
 
@@ -19,7 +19,7 @@ def split_file(fname, imgfname):
 	for filename in files:
 		count += 1
 
-		call(["java", "-jar","f5.jar", "e", "-e", filename, imgfname, image_name + "_" + str(count) +  ".jpg"])
+		p = call(["java", "-jar","f5.jar", "e", "-e", filename, imgfname, image_name + "_" + str(count) +  ".jpg"])
 
 		os.remove(filename)
 
