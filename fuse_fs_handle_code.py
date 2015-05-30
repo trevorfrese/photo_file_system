@@ -100,17 +100,23 @@ class Passthrough(Operations):
 
     def open(self, path, flags):
         full_path = self._full_path(path)
+        print "*** open: " + full_path
         return os.open(full_path, flags)
 
     def create(self, path, mode, fi=None):
         full_path = self._full_path(path)
+        print "*** create: " + full_path
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
+        print "*** read: " + path
+        print fh
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
+        print "*** write: " + path
+        print fh
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
