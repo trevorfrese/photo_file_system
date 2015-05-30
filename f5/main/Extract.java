@@ -18,7 +18,7 @@ public class Extract {
 
     private static int[] coeff; // dct values
 
-    private static FileOutputStream fos; // embedded file (output file)
+    private static PrintStream fos; // This will be System.out
 
     private static String embFileName; // output file name
 
@@ -34,12 +34,12 @@ public class Extract {
         carrier = new byte[flength];
         fis.read(carrier);
         final HuffmanDecode hd = new HuffmanDecode(carrier);
-        System.out.println("Huffman decoding starts");
+        System.err.println("Huffman decoding starts");
         coeff = hd.decode();
-        System.out.println("Permutation starts");
+        System.err.println("Permutation starts");
         final F5Random random = new F5Random(password.getBytes());
         final Permutation permutation = new Permutation(coeff.length, random);
-        System.out.println(coeff.length + " indices shuffled");
+        System.err.println(coeff.length + " indices shuffled");
         int extractedByte = 0;
         int availableExtractedBits = 0;
         int extractedFileLength = 0;
@@ -47,7 +47,7 @@ public class Extract {
         int shuffledIndex = 0;
         int extractedBit;
         int i;
-        System.out.println("Extraction starts");
+        System.err.println("Extraction starts");
         // extract length information
         for (i = 0; availableExtractedBits < 32; i++) {
             shuffledIndex = permutation.getShuffled(i);
@@ -74,12 +74,12 @@ public class Extract {
         k %= 32;
         final int n = (1 << k) - 1;
         extractedFileLength &= 0x007fffff;
-        System.out.println("Length of embedded file: " + extractedFileLength + " bytes");
+        System.err.println("Length of embedded file: " + extractedFileLength + " bytes");
         availableExtractedBits = 0;
         if (n > 0) {
             int startOfN = i;
             int hash;
-            System.out.println("(1, " + n + ", " + k + ") code used");
+            System.err.println("(1, " + n + ", " + k + ") code used");
             extractingLoop: do {
                 // 1. read n places, and calculate k bits
                 hash = 0;
@@ -115,6 +115,7 @@ public class Extract {
                         // remove pseudo random pad
                         extractedByte ^= random.getNextByte();
                         fos.write((byte) extractedByte);
+                        fos.flush();
                         extractedByte = 0;
                         availableExtractedBits = 0;
                         nBytesExtracted++;
@@ -126,7 +127,7 @@ public class Extract {
                 }
             } while (true);
         } else {
-            System.out.println("Default code used");
+            System.err.println("Default code used");
             for (; i < coeff.length; i++) {
                 shuffledIndex = permutation.getShuffled(i);
                 if (shuffledIndex % 64 == 0) {
@@ -146,6 +147,7 @@ public class Extract {
                     // remove pseudo random pad
                     extractedByte ^= random.getNextByte();
                     fos.write((byte) extractedByte);
+                    fos.flush();
                     extractedByte = 0;
                     availableExtractedBits = 0;
                     nBytesExtracted++;
@@ -156,7 +158,7 @@ public class Extract {
             }
         }
         if (nBytesExtracted < extractedFileLength) {
-            System.out.println("Incomplete file: only " + nBytesExtracted + " of " + extractedFileLength
+            System.err.println("Incomplete file: only " + nBytesExtracted + " of " + extractedFileLength
                     + " bytes extracted");
         }
     }
@@ -179,7 +181,7 @@ public class Extract {
                     continue;
                 }
                 if (args.length < i + 1) {
-                    System.out.println("Missing parameter for switch " + args[i]);
+                    System.err.println("Missing parameter for switch " + args[i]);
                     usage();
                     return;
                 }
@@ -188,14 +190,16 @@ public class Extract {
                 } else if (args[i].equals("-p")) {
                     password = args[i + 1];
                 } else {
-                    System.out.println("Unknown switch " + args[i] + " ignored.");
+                    System.err.println("Unknown switch " + args[i] + " ignored.");
                 }
                 i++;
             }
 
-            final FileInputStream fis = new FileInputStream(f);
-            fos = new FileOutputStream(new File(embFileName));
-            extract(fis, (int) f.length(), fos, password);
+            // These are expected as InputStream and OutputStream
+            final FileInputStream fis = new FileInputStream(f);     // This is the image you extract from
+            //fos = new FileOutputStream(new File(embFileName));    // This is what you extract into
+            fos = System.out;                                       // Replace it with just stdout ...?
+            extract(fis, (int) f.length(), fos, password);            
 
         } catch (final Exception e) {
             e.printStackTrace();

@@ -122,11 +122,31 @@ class Passthrough(Operations):
         print "*** create: " + full_path
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
+    # Current implementation: Whenever you read anything, it just returns whatever is in the lena_*.jpg images.
+    # There's no support for multiple files yet. There will be.
     def read(self, path, length, offset, fh):
         print "*** read: " + path
-        print fh
         os.lseek(fh, offset, os.SEEK_SET)
-        return os.read(fh, length)
+
+        file_string = self.image_filename.split(".")[0]
+
+        # Compile the list of images
+        files = []
+        for filename in os.listdir("tmp"):
+            if filename.startswith(file_string + "_"):
+                files.append(filename)
+
+        # Extract from each image; print output (for now)
+        buf = []
+        for i in range(len(files)):
+            filename = "tmp/" + file_string + "_" + str(i + 1) + ".jpg"
+
+            p = Popen(["java", "-jar","f6.jar", "x", filename], stdout=PIPE, stderr=PIPE)
+            output, error = p.communicate()
+            print "Output: ", output
+
+        #return os.read(fh, length)
+        return os.EX_OK
 
     def write(self, path, buf, offset, fh):
         print "*** write: " + path
@@ -134,20 +154,19 @@ class Passthrough(Operations):
 
         # Split the buffer into chunks
         count = 0
+        image_name = self.image_filename.split('.')[0]
         for chunk in grouper(4096, buf):
             chunk = "".join(chunk)  # Convert to string
             count += 1
 
             # Write the chunk into an image file
-            image_name = self.image_filename.split('.')[0]
-            image_output_name = image_name + "_" + str(count) +  ".jpg"
+            image_output_name = "tmp/" + image_name + "_" + str(count) +  ".jpg"
             
             p = Popen(["java", "-jar","f6.jar", "e", self.image_filename, image_output_name], stdin=PIPE)
-            print p.communicate(input=chunk)[0]
-
-            #call(["java", "-jar","f6.jar", "e", image_filename, image_name + "_" + str(count) +  ".jpg"])
+            p.communicate(input=chunk)[0]
 
         #return os.write(fh, buf)
+        return os.EX_OK
 
     def truncate(self, path, length, fh=None):
         full_path = self._full_path(path)
