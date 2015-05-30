@@ -12,6 +12,8 @@ import errno   # for error number codes (ENOENT, etc)
 import json
 import flickrapi
 
+
+
 def dirFromList(list):
     """
     Return a properly formatted list of items suitable to a directory listing.
@@ -23,7 +25,7 @@ def getDepth(path):
     """
     Return the depth of a given path, zero-based from root ('/')
     """
-    if path == '/': 
+    if path == '/':
        return 0
     else:
        return path.count('/')
@@ -34,7 +36,7 @@ def getParts(path):
     Return the slash-separated parts of a given path as a list
     """
 
-    if path == '/': 
+    if path == '/':
        return ['/']
     else:
        return path.split('/')
@@ -54,6 +56,26 @@ class ImageFS(Fuse):
        print 'Init complete.'
 
   def getattr(self, path):
+    st = MyStat()
+    pe = path.split('/')[1:]
+
+    st.st_atime = int(time())
+    st.st_mtime = st.st_atime
+    st.st_ctime = st.st_atime
+
+    if path == '/':                         # root
+        pass
+    elif self.printers.has_key(pe[-1]):     # a printer
+        pass
+    elif self.lastfiles.has_key(pe[-1]):    # a file
+        st.st_mode = stat.S_IFREG | 0666
+        st.st_nlink = 1
+        st.st_size = len(self.lastfiles[pe[-1]]
+    else:
+        return -errno.ENOENT
+    return st
+
+
        """
        - st_mode (protection bits)
        - st_ino (inode number)
@@ -84,13 +106,22 @@ class ImageFS(Fuse):
 
    ### HEY KEVIN DO THIS
    ### It's called readdir in the tutorial but it's getdir here I guess
-   def getdir(self, path):
+  def getdir(self, path):
        """
        return: [('file1',_0),_('file2',_0),_..._]
        """
+    dirents = [ '.', '..' ]
+    if path == '/':
+      dirents.extend(self.printers.keys())
+    else:
+     # Note use of path[1:] to strip the leading '/'
+     # from the path, so we just get the printer name
+     dirents.extend(self.printers[path[1:]])
+    for r in dirents:
+      yield fuse.Direntry(r)
 
-       print '*** getdir', path
-       return -errno.ENOSYS
+         print '*** getdir', path
+         return -errno.ENOSYS
 
    def mythread ( self ):
        print '*** mythread'
