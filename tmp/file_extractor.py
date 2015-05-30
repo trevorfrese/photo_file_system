@@ -39,12 +39,3 @@ print files
 #full_list_of_files = ' '.join(outfiles)
 
 #call(["cat", full_list_of_files])
-
-
-
-
-
-
-
-
-

@@ -2,8 +2,6 @@ from subprocess import call
 import sys
 import os
 
-argv = sys.argv
-
 file_string = argv[2].split('.')[0]
 print file_string
 
@@ -25,6 +23,13 @@ for filename in files:
 
 	os.remove(filename)
 
+	count = 0
+	for filename in files:
+		count += 1
 
+		call(["java", "-jar","f5.jar", "e", "-e", filename, imgfname, image_name + "_" + str(count) +  ".jpg"])
 
+		os.remove(filename)
 
+if __name__ == "__main__":
+	split_file(sys.argv[1], sys.argv[2])
