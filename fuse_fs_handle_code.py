@@ -9,7 +9,7 @@ import itertools
 from fuse import FUSE, FuseOSError, Operations
 import flickrapi
 
-from subprocess import call, Popen, PIPE
+from subprocess import call, check_output, Popen, PIPE
 
 # Helper to split an iterable (like a buffer) into smaller iterables
 # Another version exists using iterators, for greater efficiency, if we need it.
@@ -31,6 +31,9 @@ class Passthrough(Operations):
 
         # Hardcode some temp shit
         self.image_filename = "lena.jpg"
+
+        self.files = {}
+        self.devnull = os.open("/dev/null", os.O_RDWR)
 
     def _full_path(self, partial):
         if partial.startswith("/"):
@@ -126,47 +129,46 @@ class Passthrough(Operations):
     # There's no support for multiple files yet. There will be.
     def read(self, path, length, offset, fh):
         print "*** read: " + path
-        os.lseek(fh, offset, os.SEEK_SET)
+        # os.lseek(fh, offset, os.SEEK_SET)
 
-        file_string = self.image_filename.split(".")[0]
+        # In attempt to not break everything,
+        # read by grabbing images ONLY IF this fpath is one we've already written into images.
+        # if path in self.files:
+        #     file_string = self.image_filename.split(".")[0]
 
-        # Compile the list of images
-        files = []
-        for filename in os.listdir("tmp"):
-            if filename.startswith(file_string + "_"):
-                files.append(filename)
+        #     # Compile the list of images
+        #     files = []
+        #     for filename in os.listdir("tmp"):
+        #         if filename.startswith(file_string + "_"):
+        #             files.append(filename)
 
-        # Extract from each image; print output (for now)
-        buf = []
-        for i in range(len(files)):
-            filename = "tmp/" + file_string + "_" + str(i + 1) + ".jpg"
+        #     # Extract from each image; print output (for now)
+        #     buf = []
+        #     for i in range(len(files)):
+        #         filename = "tmp/" + file_string + "_" + "%03i" % (i + 1) + ".jpg"
 
-            p = Popen(["java", "-jar","f6.jar", "x", filename], stdout=PIPE, stderr=PIPE)
-            output, error = p.communicate()
-            print "Output: ", output
+        #         #p = Popen(["java", "-jar","f6.jar", "x", filename], stdout=PIPE, stderr=PIPE)
+        #         #result = p.communicate()[0]
+        #         #result = check_output(["java", "-jar","f6.jar", "x", filename], stderr=self.devnull)
+        #         result = os.system("java -jar f6.jar x tmp/lena_001.jpg")
+        #         print result
+        #         buf.append(result)
 
-        #return os.read(fh, length)
-        return os.EX_OK
+        #     return "".join(buf)
+        # else:
+        return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
         print "*** write: " + path
-        os.lseek(fh, offset, os.SEEK_SET)
+        # os.lseek(fh, offset, os.SEEK_SET)
 
-        # Split the buffer into chunks
-        count = 0
-        image_name = self.image_filename.split('.')[0]
-        for chunk in grouper(4096, buf):
-            chunk = "".join(chunk)  # Convert to string
-            count += 1
+        if path in self.files:
+            self.files[path] += buf
+        else:
+            self.files[path] = buf
 
-            # Write the chunk into an image file
-            image_output_name = "tmp/" + image_name + "_" + str(count) +  ".jpg"
-            
-            p = Popen(["java", "-jar","f6.jar", "e", self.image_filename, image_output_name], stdin=PIPE)
-            p.communicate(input=chunk)[0]
-
-        #return os.write(fh, buf)
-        return os.EX_OK
+        return os.write(self.devnull, buf)
+        #return os.EX_OK
 
     def truncate(self, path, length, fh=None):
         full_path = self._full_path(path)
@@ -177,6 +179,21 @@ class Passthrough(Operations):
         return os.fsync(fh)
 
     def release(self, path, fh):
+
+        if path in self.files:
+            buf = self.files[path]
+            # Split the buffer into chunks
+            count = 0
+            image_name = self.image_filename.split('.')[0]
+            for chunk in grouper(4096, buf):
+                chunk = "".join(chunk)  # Convert to string
+                count += 1
+                # Write the chunk into an image file
+                str_count = "%03i" % count
+                image_output_name = "tmp/" + image_name + "_" + str_count +  ".jpg"
+                Popen(["java", "-jar","f6.jar", "e", "lena.jpg", image_output_name], stdin=PIPE).stdin.write(chunk)
+                #p.communicate(input=chunk)[0]
+
         return os.close(fh)
 
     def fsync(self, path, fdatasync, fh):

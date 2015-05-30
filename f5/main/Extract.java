@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -29,7 +30,7 @@ public class Extract {
             40, 44, 53, 10, 19, 23, 32, 39, 45, 52, 54, 20, 22, 33, 38, 46, 51, 55, 60, 21, 34, 37, 47, 50, 56, 59, 61,
             35, 36, 48, 49, 57, 58, 62, 63 };
 
-    public static void extract(final InputStream fis, final int flength, final OutputStream fos, final String password)
+    public static void extract(final InputStream fis, final int flength, final PrintStream fos, final String password)
             throws IOException {
         carrier = new byte[flength];
         fis.read(carrier);
@@ -115,7 +116,9 @@ public class Extract {
                         // remove pseudo random pad
                         extractedByte ^= random.getNextByte();
                         fos.write((byte) extractedByte);
+                        //System.out.println(extractedByte);
                         fos.flush();
+                        //System.out.print((byte) extractedByte);
                         extractedByte = 0;
                         availableExtractedBits = 0;
                         nBytesExtracted++;
@@ -198,8 +201,8 @@ public class Extract {
             // These are expected as InputStream and OutputStream
             final FileInputStream fis = new FileInputStream(f);     // This is the image you extract from
             //fos = new FileOutputStream(new File(embFileName));    // This is what you extract into
-            fos = System.out;                                       // Replace it with just stdout ...?
-            extract(fis, (int) f.length(), fos, password);            
+            // fos = System.out;                                       // Replace it with just stdout ...?
+            extract(fis, (int) f.length(), System.out, password);            
 
         } catch (final Exception e) {
             e.printStackTrace();
